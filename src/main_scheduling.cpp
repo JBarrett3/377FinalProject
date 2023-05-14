@@ -1,12 +1,15 @@
 #include <scheduling.h>
 #include <iostream>
 #include <string>
+#include <limits>
+float Inf = numeric_limits<float>::infinity(); 
 
 using namespace std;
 
 int main(int argc, char* argv[]) {
-  if (argc != 3) {
+  if (argc != 3 && argc != 6) {
     cout << "usage: [fifo|sjf|stcf|rr] workload_file" << endl;
+    cout << "OR [mlfq] workload_file levels timeSlice Boost" <<endl;
     exit(1);
   }
 
@@ -23,9 +26,19 @@ int main(int argc, char* argv[]) {
     show_metrics(stcf(workload));
   } else if (algorithm == "rr") {
     show_metrics(rr(workload));
+  } else if (algorithm == "mlfq") {
+   int levels = atoi(argv[3]);
+   int timeSlice = atoi(argv[4]);
+   if (levels > 8) {
+    cout << "Only supports up to 8 levels" <<endl;
+    exit(1);
+   }
+   int boost = atoi(argv[5]);
+   show_metrics(mlfq(workload, levels, timeSlice, boost));
   } else {
     cout << "Error: Unknown algorithm: " << algorithm << endl;
     cout << "usage: [fifo|sjf|stcf|rr] workload_file" << endl;
+    cout << "OR [mlfq] workload_file levels timeSlice Boost" <<endl;
     exit(1);
   }
 

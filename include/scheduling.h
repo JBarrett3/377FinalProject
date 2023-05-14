@@ -10,6 +10,10 @@ struct Process {
   int first_run;
   int duration;
   int completion;
+  
+  int completedTimeInQueue;
+  int completedTimeOverall;
+  int id;
 };
 
 class ArrivalComparator {
@@ -45,6 +49,7 @@ list<Process> fifo(pqueue_arrival workload);
 list<Process> sjf(pqueue_arrival workload);
 list<Process> stcf(pqueue_arrival workload);
 list<Process> rr(pqueue_arrival workload);
+list<Process> mlfq(pqueue_arrival workload, int levels, int timeSlice, int boost);
 
 float avg_turnaround(list<Process> processes);
 float avg_response(list<Process> processes);
