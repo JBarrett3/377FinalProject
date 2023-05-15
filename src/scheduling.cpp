@@ -148,7 +148,6 @@ list<Process> stcf(pqueue_arrival workload) {
     }
     time += 1;
     oldP.duration--;
-    //TODO handle potential error with duration no longer reflecting properly
     if (oldP.duration == 0) {
       oldP.completion = time;
       Process newP = {oldP.arrival,oldP.first_run,oldP.duration,oldP.completion, 0, 0, 0, 0};
@@ -162,11 +161,14 @@ list<Process> stcf(pqueue_arrival workload) {
   return complete;
 }
 
+
+int currNumProcesses = 0;
 void updateArrivedJobs(pqueue_arrival *unarrivedJobs, queue<Process> *arrivedJobs, int time) {
   while (!(*unarrivedJobs).empty()) {
     Process p = (*unarrivedJobs).top();
     if (p.arrival <= time) {
       (*arrivedJobs).push(p);
+      currNumProcesses++;
     } else {
       break;
     }
@@ -179,6 +181,7 @@ void updateArrivedJobs(pqueue_arrival *unarrivedJobs, queue<Process> *arrivedJob
     Process p = (*unarrivedJobs).top();
     if (p.arrival <= time) {
       (*arrivedJobs).push(p);
+      currNumProcesses++;
       *i = 0;
     } else {
       break;
@@ -199,7 +202,7 @@ void updateSnapShots(int levels, queue<Process> queues[], queue<int> snapShots[]
     while (!queues[i].empty()) {
       Process proc = queues[i].front();
       queues[i].pop();
-      snapShots[time][i].push(proc.id);
+      snapShots[time+1][i].push(proc.id);
       temp.push(proc);
     }
     queues[i] = temp;
@@ -314,6 +317,7 @@ list<Process> mlfq(pqueue_arrival workload, int levels, int timeSlice, int boost
   updateArrivedJobs(&unarrivedJobs,&queues[0],time);
   
   int i = 0;
+  updateSnapShots(levels, queues, snapShots, time, -1);
   while (i < levels) {
     if (queues[i].empty()) {i++; continue;}
     Process oldP = queues[i].front();
@@ -323,11 +327,11 @@ list<Process> mlfq(pqueue_arrival workload, int levels, int timeSlice, int boost
     }
     time++;
     if (oldP.interactive == 1) {
-      if (time % 2) { //every once in a while
+      if (time % 3) { //every once in a while
         updateSnapShots(levels, queues, snapShots, time, oldP.id);
         queues[i].push(oldP);
         order.append(" ");
-        continue; //TODO make sure continue goes to next iteration in loop
+        continue;
       }
     }
     oldP.completedTimeInQueue++;
@@ -431,4 +435,80 @@ void show_metrics(list<Process> processes) {
   cout << '\n';
   cout << "Average Turnaround Time: " << avg_t << endl;
   cout << "Average Response Time:   " << avg_r << endl;
+}
+
+list<Process> modMlfq(pqueue_arrival workload, int levels, int timeSlice, int boost, int interactive) {
+  if (interactive == 1) {
+    int i = 0;
+    pqueue_arrival temp;
+    while (!workload.empty()) {
+      Process oldP = workload.top();
+      workload.pop();
+      if (i % 2) { //every once in a while
+        oldP.interactive = 1;
+      }
+      temp.push(oldP);
+      i++;
+    }
+    workload = temp;
+  }
+  
+  queue<Process> queues[levels];
+  for (int i = 0; i < levels; i++) {
+    queues[i] = queue<Process>();
+  }
+  
+  list<Process> complete;
+  int time = 0;
+
+  pqueue_arrival unarrivedJobs = workload;
+  queue<int> snapShots[200][8]; //levels capped to 8
+  snapShots[0][levels].push(-1);
+  updateArrivedJobs(&unarrivedJobs,&queues[currNumProcesses],time);
+  
+  int i = 0;
+  while (i < levels) {
+    if (queues[i].empty()) {i++; continue;}
+    Process oldP = queues[i].front();
+    queues[i].pop();
+    if (oldP.first_run == -1) {
+      oldP.first_run = time;
+    }
+    time++;
+    if (oldP.interactive == 1) {
+      if (time % 2) { //every once in a while
+        updateSnapShots(levels, queues, snapShots, time, oldP.id);
+        queues[i].push(oldP);
+        order.append(" ");
+        continue;
+      }
+    }
+    oldP.completedTimeInQueue++;
+    oldP.completedTimeOverall++;
+    if (oldP.duration == oldP.completedTimeOverall) {
+      oldP.completion = time;
+      Process newP = {oldP.arrival,oldP.first_run,oldP.duration,oldP.completion,oldP.completedTimeInQueue,oldP.completedTimeOverall, oldP.id, oldP.interactive};
+      complete.push_back(newP);
+      currNumProcesses--;
+    } else {
+      if ((oldP.completedTimeInQueue == timeSlice) && (i != levels-1)) {
+        oldP.completedTimeInQueue = 0;
+        queues[i+1].push(oldP);
+      } else {
+        queues[i].push(oldP);
+      }
+    }
+    
+    updateArrivedJobs(&unarrivedJobs,&queues[currNumProcesses],time, &i);
+    if ((time % boost) == 0) {
+      moveAllToTop(levels, queues);
+      i = 0;
+    }
+
+    updateSnapShots(levels, queues, snapShots, time, -1);
+    order.append(to_string(oldP.id));
+  }
+
+  exportSnapShots(snapShots, levels, time, order);
+  return complete;
 }

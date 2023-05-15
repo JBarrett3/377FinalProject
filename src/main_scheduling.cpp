@@ -9,7 +9,8 @@ using namespace std;
 int main(int argc, char* argv[]) {
   if (argc != 3 && argc != 7) {
     cout << "usage: [fifo|sjf|stcf|rr] workload_file" << endl;
-    cout << "OR [mlfq] workload_file levels timeSlice boost Interactive" <<endl;
+    cout << "OR [mlfq] workload_file levels timeSlice boost interactive" <<endl;
+    cout << "OR [modMlfq] workload_file levels timeSlice boost interactive" <<endl;
     exit(1);
   }
 
@@ -36,10 +37,21 @@ int main(int argc, char* argv[]) {
    int boost = atoi(argv[5]);
    int interactive = atoi(argv[6]);
    show_metrics(mlfq(workload, levels, timeSlice, boost, interactive));
+  } else if (algorithm == "modMlfq") {
+   int levels = atoi(argv[3]);
+   int timeSlice = atoi(argv[4]);
+   if (levels > 8) {
+    cout << "Only supports up to 8 levels" <<endl;
+    exit(1);
+   }
+   int boost = atoi(argv[5]);
+   int interactive = atoi(argv[6]);
+   show_metrics(modMlfq(workload, levels, timeSlice, boost, interactive));
   } else {
     cout << "Error: Unknown algorithm: " << algorithm << endl;
     cout << "usage: [fifo|sjf|stcf|rr] workload_file" << endl;
     cout << "OR [mlfq] workload_file levels timeSlice boost interactive" <<endl;
+    cout << "OR [modMlfq] workload_file levels timeSlice boost interactive" <<endl;
     exit(1);
   }
 

@@ -51,6 +51,7 @@ list<Process> sjf(pqueue_arrival workload);
 list<Process> stcf(pqueue_arrival workload);
 list<Process> rr(pqueue_arrival workload);
 list<Process> mlfq(pqueue_arrival workload, int levels, int timeSlice, int boost, int interactive);
+list<Process> modMlfq(pqueue_arrival workload, int levels, int timeSlice, int boost, int interactive);
 
 float avg_turnaround(list<Process> processes);
 float avg_response(list<Process> processes);
