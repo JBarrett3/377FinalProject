@@ -27,7 +27,7 @@ pqueue_arrival read_workload(string filename) {
     stringstream lineStream(line);
     lineStream >> arrival;
     lineStream >> duration;
-    Process work {stoi(arrival), -1, stoi(duration), -1, 0, 0, id};
+    Process work {stoi(arrival), -1, stoi(duration), -1, 0, 0, id, 0};
     id++;
     workload.push(work);
     line = "";
@@ -99,7 +99,7 @@ list<Process> fifo(pqueue_arrival workload) {
     firstRun = time;
     time += oldP.duration;
     completion = time;
-    Process newP = {oldP.arrival,firstRun,oldP.duration,completion, 0, 0, oldP.id};
+    Process newP = {oldP.arrival,firstRun,oldP.duration,completion, 0, 0, 0, 0};
     complete.push_back(newP);
     arrivedJobs.pop();
     updateArrivedJobs(&unarrivedJobs,&arrivedJobs,time);
@@ -123,7 +123,7 @@ list<Process> sjf(pqueue_arrival workload) {
     firstRun = time;
     time += oldP.duration;
     completion = time;
-    Process newP = {oldP.arrival,firstRun,oldP.duration,completion, 0, 0, oldP.id};
+    Process newP = {oldP.arrival,firstRun,oldP.duration,completion, 0, 0, 0, 0};
     complete.push_back(newP);
     arrivedJobs.pop();
     updateArrivedJobs(&unarrivedJobs,&arrivedJobs,time);
@@ -151,7 +151,7 @@ list<Process> stcf(pqueue_arrival workload) {
     //TODO handle potential error with duration no longer reflecting properly
     if (oldP.duration == 0) {
       oldP.completion = time;
-      Process newP = {oldP.arrival,oldP.first_run,oldP.duration,oldP.completion, 0, 0, oldP.id};
+      Process newP = {oldP.arrival,oldP.first_run,oldP.duration,oldP.completion, 0, 0, 0, 0};
       complete.push_back(newP);
     } else {
       arrivedJobs.push(oldP);
@@ -187,7 +187,13 @@ void updateArrivedJobs(pqueue_arrival *unarrivedJobs, queue<Process> *arrivedJob
   }
 }
 
-void updateSnapShots(int levels, queue<Process> queues[], queue<int> snapShots[][8], int time) { //second size in multiDim array required
+void updateSnapShots(int levels, queue<Process> queues[], queue<int> snapShots[][8], int time, int passedID) { //second size in multiDim array required
+  if (passedID == -1) {
+    snapShots[time][levels].push(-1);
+  } else {
+    snapShots[time][levels].push(passedID);
+  }
+  
   for (int i = 0; i < levels; i++) {
     queue<Process> temp;
     while (!queues[i].empty()) {
@@ -238,6 +244,21 @@ void exportSnapShots(queue<int> snapShots[][8], int levels, int time, string ord
   }
 
   output << endl;
+  output << "ID of job pass";
+  for (int i = 0; i < time; i++) {
+    output << "|";
+    if (snapShots[i][levels].back() != -1) {
+      output << snapShots[i][levels].back();
+      for (int j = 1; j < id; j++) {
+        output << " ";
+      }
+    } else {
+      for (int j = 0; j < id; j++) {
+        output << " ";
+      }
+    }
+  }
+  output << endl;
   output << "ID of run file";
   for (int i = 0; i < (int)order.length(); i++) {
     output << "|";
@@ -262,9 +283,23 @@ void moveAllToTop(int levels, queue<Process> queues[]) {
   } 
 }
 
-
-string order = "";
-list<Process> mlfq(pqueue_arrival workload, int levels, int timeSlice, int boost) {
+string order = " ";
+list<Process> mlfq(pqueue_arrival workload, int levels, int timeSlice, int boost, int interactive) {
+  if (interactive == 1) {
+    int i = 0;
+    pqueue_arrival temp;
+    while (!workload.empty()) {
+      Process oldP = workload.top();
+      workload.pop();
+      if (i % 2) { //every once in a while
+        oldP.interactive = 1;
+      }
+      temp.push(oldP);
+      i++;
+    }
+    workload = temp;
+  }
+  
   queue<Process> queues[levels];
   for (int i = 0; i < levels; i++) {
     queues[i] = queue<Process>();
@@ -275,6 +310,7 @@ list<Process> mlfq(pqueue_arrival workload, int levels, int timeSlice, int boost
 
   pqueue_arrival unarrivedJobs = workload;
   queue<int> snapShots[200][8]; //levels capped to 8
+  snapShots[0][levels].push(-1);
   updateArrivedJobs(&unarrivedJobs,&queues[0],time);
   
   int i = 0;
@@ -286,11 +322,19 @@ list<Process> mlfq(pqueue_arrival workload, int levels, int timeSlice, int boost
       oldP.first_run = time;
     }
     time++;
+    if (oldP.interactive == 1) {
+      if (time % 2) { //every once in a while
+        updateSnapShots(levels, queues, snapShots, time, oldP.id);
+        queues[i].push(oldP);
+        order.append(" ");
+        continue; //TODO make sure continue goes to next iteration in loop
+      }
+    }
     oldP.completedTimeInQueue++;
     oldP.completedTimeOverall++;
     if (oldP.duration == oldP.completedTimeOverall) {
       oldP.completion = time;
-      Process newP = {oldP.arrival,oldP.first_run,oldP.duration,oldP.completion,oldP.completedTimeInQueue,oldP.completedTimeOverall, oldP.id};
+      Process newP = {oldP.arrival,oldP.first_run,oldP.duration,oldP.completion,oldP.completedTimeInQueue,oldP.completedTimeOverall, oldP.id, oldP.interactive};
       complete.push_back(newP);
     } else {
       if ((oldP.completedTimeInQueue == timeSlice) && (i != levels-1)) {
@@ -307,7 +351,7 @@ list<Process> mlfq(pqueue_arrival workload, int levels, int timeSlice, int boost
       i = 0;
     }
 
-    updateSnapShots(levels, queues, snapShots, time);
+    updateSnapShots(levels, queues, snapShots, time, -1);
     order.append(to_string(oldP.id));
   }
 
@@ -333,7 +377,7 @@ list<Process> rr(pqueue_arrival workload) {
     oldP.duration--;
     if (oldP.duration == 0) {
       oldP.completion = time;
-      Process newP = {oldP.arrival,oldP.first_run,oldP.duration,oldP.completion, 0, 0, oldP.id};
+      Process newP = {oldP.arrival,oldP.first_run,oldP.duration,oldP.completion, 0, 0, oldP.id, oldP.interactive};
       complete.push_back(newP);
     } else {
       arrivedJobs.push(oldP);

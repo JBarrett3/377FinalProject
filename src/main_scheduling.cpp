@@ -7,9 +7,9 @@ float Inf = numeric_limits<float>::infinity();
 using namespace std;
 
 int main(int argc, char* argv[]) {
-  if (argc != 3 && argc != 6) {
+  if (argc != 3 && argc != 7) {
     cout << "usage: [fifo|sjf|stcf|rr] workload_file" << endl;
-    cout << "OR [mlfq] workload_file levels timeSlice Boost" <<endl;
+    cout << "OR [mlfq] workload_file levels timeSlice boost Interactive" <<endl;
     exit(1);
   }
 
@@ -34,11 +34,12 @@ int main(int argc, char* argv[]) {
     exit(1);
    }
    int boost = atoi(argv[5]);
-   show_metrics(mlfq(workload, levels, timeSlice, boost));
+   int interactive = atoi(argv[6]);
+   show_metrics(mlfq(workload, levels, timeSlice, boost, interactive));
   } else {
     cout << "Error: Unknown algorithm: " << algorithm << endl;
     cout << "usage: [fifo|sjf|stcf|rr] workload_file" << endl;
-    cout << "OR [mlfq] workload_file levels timeSlice Boost" <<endl;
+    cout << "OR [mlfq] workload_file levels timeSlice boost interactive" <<endl;
     exit(1);
   }
 
