@@ -28,25 +28,43 @@ int main(int argc, char* argv[]) {
   } else if (algorithm == "rr") {
     show_metrics(rr(workload));
   } else if (algorithm == "mlfq") {
-   int levels = atoi(argv[3]);
-   int timeSlice = atoi(argv[4]);
-   if (levels > 8) {
-    cout << "Only supports up to 8 levels" <<endl;
-    exit(1);
-   }
-   int boost = atoi(argv[5]);
-   int interactive = atoi(argv[6]);
-   show_metrics(mlfq(workload, levels, timeSlice, boost, interactive));
+    if (argc != 7) {
+      cout << "usage: [fifo|sjf|stcf|rr] workload_file" << endl;
+      cout << "OR [mlfq|modMlfq] workload_file levels timeSlice boost interactive" <<endl;
+      exit(1);
+    }
+    int levels = atoi(argv[3]);
+    if (levels > 8) {
+      cout << "Only supports up to 8 levels" << endl;
+      exit(1);
+    }
+    int timeSlice = atoi(argv[4]);
+    int boost = atoi(argv[5]);
+    int interactive = atoi(argv[6]);
+    if (interactive != 0 && interactive != 1) {
+      cout << "Either interactive (1) or not (0)" << endl;
+      exit(1);
+    }
+    show_metrics(mlfq(workload, levels, timeSlice, boost, interactive));
   } else if (algorithm == "modMlfq") {
-   int levels = atoi(argv[3]);
-   int timeSlice = atoi(argv[4]);
-   if (levels > 8) {
-    cout << "Only supports up to 8 levels" <<endl;
-    exit(1);
-   }
-   int boost = atoi(argv[5]);
-   int interactive = atoi(argv[6]);
-   show_metrics(modMlfq(workload, levels, timeSlice, boost, interactive));
+    if (argc != 7) {
+      cout << "usage: [fifo|sjf|stcf|rr] workload_file" << endl;
+      cout << "OR [mlfq|modMlfq] workload_file levels timeSlice boost interactive" <<endl;
+      exit(1);
+    }
+    int levels = atoi(argv[3]);
+    if (levels > 8) {
+      cout << "Only supports up to 8 levels" << endl;
+      exit(1);
+     }
+    int timeSlice = atoi(argv[4]);
+    int boost = atoi(argv[5]);
+    int interactive = atoi(argv[6]);
+    if (interactive != 0 && interactive != 1) {
+      cout << "Either interactive (1) or not (0)" << endl;
+      exit(1);
+    }
+    show_metrics(modMlfq(workload, levels, timeSlice, boost, interactive));
   } else {
     cout << "Error: Unknown algorithm: " << algorithm << endl;
     cout << "usage: [fifo|sjf|stcf|rr] workload_file" << endl;
